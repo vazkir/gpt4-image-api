@@ -66,6 +66,7 @@ async def start_session():
 @app.post("/action/")
 async def perform_action(payload: Payload):
     try:
+        print(payload)
         # Download the image from the provided URL
         response = requests.get(payload.image_url, stream=True)
         response.raise_for_status()
