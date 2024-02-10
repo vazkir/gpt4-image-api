@@ -2,6 +2,7 @@ import os
 import requests
 import time
 import json
+import ast, textwrap
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -54,11 +55,11 @@ async def start_session():
     next_button = driver.find_element(By.XPATH, '//span[text()="Next"]')
     next_button.click()
     time.sleep(3)
-    # Wait for user to validate login
-    input("Press Enter to continue...")
-    # Find the Okay, let’s go button
-    okay_button = driver.find_element(By.XPATH, '//div[text()="Okay, let’s go"]')
-    okay_button.click()
+    # # Wait for user to validate login
+    # input("Press Enter to continue...")
+    # # Find the Okay, let’s go button
+    # okay_button = driver.find_element(By.XPATH, '//div[text()="Okay, let’s go"]')
+    # okay_button.click()
     # Setup OK
     return {"status": "Selenium session started!"}
 
@@ -92,7 +93,7 @@ async def perform_action(payload: Payload):
 
         # Find prompt text area
         prompt = driver.find_element(By.XPATH, '//textarea[@id="prompt-textarea"]')
-        prompt.send_keys(payload.prompt + ANSWER_FORMAT)
+        prompt.send_keys(payload.prompt)
 
         # Find the submit button data-testid="send-button
         submit_button = driver.find_element(
@@ -103,21 +104,25 @@ async def perform_action(payload: Payload):
 
         # Wait the result
         time.sleep(5)
-        regen_btn = (By.XPATH, "//div[contains(text(), 'Regenerate')]")
-        WebDriverWait(driver, 120).until(EC.presence_of_element_located(regen_btn))
+        regen_btn = (By.XPATH, "//button[@aria-label='Stop generating']")
+        WebDriverWait(driver, 120).until(EC.invisibility_of_element_located(regen_btn))
 
-        # Get response
-        code_elements = driver.find_elements(By.TAG_NAME, "code")
-        answer = code_elements[-1].text.strip() if code_elements else None
-        if not answer:
-            answer_element = driver.find_element(
-                By.CSS_SELECTOR, ".markdown.prose.w-full.break-words"
-            )
-            answer = answer_element.text.strip()
 
-        final_resp = {"status": "Success", "result": {}}
-        if answer:
-            final_resp["result"] = json.loads(answer)
+        # Finds the div containing the html generated output
+        output_element = driver.find_element(
+                    By.XPATH, "//div[starts-with(@class, 'markdown prose w-full')]"
+                )
+
+        if output_element:
+            # Removes all the extra in between spaces while keeping the newlines /n
+            gen_content = repr(textwrap.dedent(output_element.text))
+
+            # Set to json as response
+            final_resp["result"] = json.loads(gen_content)
+
+        else:
+            final_resp = {"status": "Success", "result": {}}
+
 
         # Cleanup
         os.remove(os.path.abspath(image_filename))
