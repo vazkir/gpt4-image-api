@@ -126,7 +126,7 @@ async def perform_action(payload: Payload):
 
         # Cleanup
         os.remove(os.path.abspath(image_filename))
-
+        
         return final_resp
 
     except Exception as e:
