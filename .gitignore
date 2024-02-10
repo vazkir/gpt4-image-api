@@ -2,4 +2,7 @@
 __pycache__/
 .env
 .python-version
-images/*.jpg
+images/*
+!images/.gitkeep
+page_html/*
+!page_html/.gitkeep
